@@ -1,28 +1,43 @@
 import mongoose from "mongoose";
 
 
-const workspaceSchema = new mongoose.Schema({
+const workspaceSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: [true, "workspace name is required"],
-        trim: true,
-        minlength: [3, "workspace name must be at least 3 characters long"],
-        maxlength: 100,
+      type: String,
+      required: [true, "workspace name is required"],
+      trim: true,
+      minlength: [3, "workspace name must be at least 3 characters long"],
+      maxlength: 100,
     },
 
     description: {
-        type: String,
-        trim: true,
-        maxlength: [500, "workspace description must be at most 500 characters long"],
-        default: "",
+      type: String,
+      trim: true,
+      maxlength: [
+        500,
+        "workspace description must be at most 500 characters long",
+      ],
+      default: "",
     },
 
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-},{ timestamps: true,});
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { timestamps: true },
+);
 
 
 const Workspace = mongoose.model("Workspace", workspaceSchema);
