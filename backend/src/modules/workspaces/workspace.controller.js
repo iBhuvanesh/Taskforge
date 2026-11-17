@@ -1,4 +1,5 @@
 import { createWorkspace, deleteWorkspace, getUserWorkspaces, getWorkspaceById, updateWorkspace } from "./workspace.service.js";
+import { acceptWorkspaceInvitation, createWorkspaceInvitation } from "./workspaceInvitation.service.js";
 
 
 export const createWorkspaceController = async (req, res, next) => {
@@ -111,3 +112,54 @@ export const deleteWorkspaceController = async (req, res, next) => {
     next(error);
   }
 };
+
+
+export const createWorkspaceInvitationController = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const invitation = await createWorkspaceInvitation(
+      req.params.workspaceId,
+      req.user._id,
+      req.body
+    );
+
+    if (!invitation) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found or access denied",
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Workspace invitation sent successfully",
+      data: invitation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const acceptWorkspaceInvitationController = async (req, res, next) => {
+  try {
+    const { invitationId, token } = req.body;
+
+    const result = await acceptWorkspaceInvitation(
+      invitationId,
+      token,
+      req.user._id,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Workspace invitation accepted successfully.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

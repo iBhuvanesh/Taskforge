@@ -28,12 +28,7 @@ export const sendPasswordResetEmail = async (email, resetUrl) => {
   });
 };
 
-
-
-export const sendEmailChangeVerification = async (
-  email,
-  verificationUrl
-) => {
+export const sendEmailChangeVerification = async (email, verificationUrl) => {
   await transporter.sendMail({
     from: `"TaskForge" <${process.env.EMAIL_USER}>`,
     to: email,
@@ -45,6 +40,33 @@ export const sendEmailChangeVerification = async (
       <p><a href="${verificationUrl}">Verify Email Address</a></p>
       <p>This link expires in 15 minutes.</p>
       <p>If you did not request this change, ignore this email.</p>
+    `,
+  });
+};
+
+export const sendWorkspaceInvitation = async (
+  email,
+  invitationUrl,
+  workspaceName,
+) => {
+  await transporter.sendMail({
+    from: `"TaskForge" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `You're invited to join ${workspaceName} on TaskForge`,
+    text: `You have been invited to join the workspace "${workspaceName}" on TaskForge.
+
+Accept your invitation using this link:
+${invitationUrl}
+
+This invitation expires in 24 hours.
+    `,
+    html: `
+      <h2>You're invited to TaskForge!</h2>
+      <p>You have been invited to join the workspace
+      <strong>${workspaceName}</strong>.</p>
+      <p>Click below to accept your invitation:</p>
+      <a href="${invitationUrl}">Accept Invitation</a>
+      <p>This invitation expires in 24 hours.</p>
     `,
   });
 };
