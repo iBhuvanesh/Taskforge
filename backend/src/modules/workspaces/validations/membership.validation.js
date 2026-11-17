@@ -109,3 +109,56 @@ export const validateWorkspaceMemberRole = (req, res, next) => {
 
   next();
 };
+
+
+
+
+export const validateRemoveWorkspaceMember = (req, res, next) => {
+  const { workspaceId, memberId } = req.params;
+
+  // 1. Validate workspace ID
+  if (
+    typeof workspaceId !== "string" ||
+    !/^[a-fA-F0-9]{24}$/.test(workspaceId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid workspace ID.",
+    });
+  }
+
+  // 2. Validate membership ID
+  if (
+    typeof memberId !== "string" ||
+    !/^[a-fA-F0-9]{24}$/.test(memberId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid membership ID.",
+    });
+  }
+
+  next();
+};
+
+
+
+
+
+
+export const validateWorkspaceId = (req, res, next) => {
+  const { workspaceId } = req.params;
+
+  // 1. Validate workspace ID
+  if (
+    typeof workspaceId !== "string" ||
+    !/^[a-fA-F0-9]{24}$/.test(workspaceId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid workspace ID.",
+    });
+  }
+
+  next();
+};

@@ -1,4 +1,4 @@
-import { getWorkspaceMembers, updateWorkspaceMemberRole } from "./workspaces/workspaceMember.service.js";
+import { getWorkspaceMembers, leaveWorkspace, removeWorkspaceMember, updateWorkspaceMemberRole } from "./workspaces/workspaceMember.service.js";
 
 export const getWorkspaceMembersController = async (
   req,
@@ -60,6 +60,69 @@ export const updateWorkspaceMemberRoleController = async (
       success: true,
       message: "Workspace member role updated successfully.",
       data: updatedMembership,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+export const removeWorkspaceMemberController = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { workspaceId, memberId } = req.params;
+
+    const result = await removeWorkspaceMember(
+      workspaceId,
+      memberId,
+      req.user._id
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace or member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Workspace member removed successfully.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+
+
+export const leaveWorkspaceController = async (req, res, next) => {
+  try {
+    const { workspaceId } = req.params;
+
+    const result = await leaveWorkspace(
+      workspaceId,
+      req.user._id
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace or membership not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "You have successfully left the workspace.",
+      data: result,
     });
   } catch (error) {
     next(error);

@@ -206,3 +206,172 @@ return toWorkspaceMemberResponse(updatedMembership);
 };
 
 
+
+export const removeWorkspaceMember = async (
+  workspaceId,
+  memberId,
+  requesterId
+) => {
+  // 1. Validate resource identifiers
+  if (
+    !mongoose.isValidObjectId(workspaceId) ||
+    !mongoose.isValidObjectId(memberId)
+  ) {
+    return null;
+  }
+
+  // 2. Verify workspace exists and is active
+  const workspace = await Workspace.findOne({
+    _id: workspaceId,
+    isDeleted: { $ne: true },
+  }).select("_id");
+
+  if (!workspace) {
+    return null;
+  }
+
+  // 3. Find the requester's membership
+  const requesterMembership = await WorkspaceMember.findOne({
+    workspace: workspaceId,
+    user: requesterId,
+  });
+
+  if (!requesterMembership) {
+    return null;
+  }
+
+  // 4. Only owners and admins can remove members
+  const allowedRoles = ["owner", "admin"];
+
+  if (!allowedRoles.includes(requesterMembership.role)) {
+    const error = new Error(
+      "You do not have permission to remove workspace members."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 5. Find the target membership
+  const targetMembership = await WorkspaceMember.findOne({
+    _id: memberId,
+    workspace: workspaceId,
+  });
+
+  if (!targetMembership) {
+    return null;
+  }
+
+  // 6. Prevent removing yourself through this operation
+  if (targetMembership.user.toString() === requesterId.toString()) {
+    const error = new Error(
+      "You cannot remove yourself using this operation."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 7. Protect workspace ownership
+  if (targetMembership.role === "owner") {
+    const error = new Error(
+      "The workspace owner cannot be removed."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 8. Admins cannot remove other admins
+  if (
+    targetMembership.role === "admin" &&
+    requesterMembership.role !== "owner"
+  ) {
+    const error = new Error(
+      "Only the workspace owner can remove an admin."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 9. Remove the membership
+  const deletedMembership = await WorkspaceMember.findOneAndDelete({
+    _id: memberId,
+    workspace: workspaceId,
+    role: targetMembership.role,
+  });
+
+  if (!deletedMembership) {
+    const error = new Error(
+      "Membership changed concurrently. Please refresh and try again."
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  return {
+    membershipId: deletedMembership._id,
+    workspaceId: deletedMembership.workspace,
+    userId: deletedMembership.user,
+  };
+};
+
+
+
+
+export const leaveWorkspace = async (workspaceId, userId) => {
+  // 1. Validate workspace ID
+  if (!mongoose.isValidObjectId(workspaceId)) {
+    return null;
+  }
+
+  // 2. Verify workspace exists and is active
+  const workspace = await Workspace.findOne({
+    _id: workspaceId,
+    isDeleted: { $ne: true },
+  }).select("_id");
+
+  if (!workspace) {
+    return null;
+  }
+
+  // 3. Find the user's membership
+  const membership = await WorkspaceMember.findOne({
+    workspace: workspaceId,
+    user: userId,
+  });
+
+  if (!membership) {
+    return null;
+  }
+
+  // 4. Prevent the owner from leaving
+  if (membership.role === "owner") {
+    const error = new Error(
+      "Workspace owner must transfer ownership before leaving."
+    );
+
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 5. Delete the user's membership
+  const deletedMembership = await WorkspaceMember.findOneAndDelete({
+    _id: membership._id,
+    workspace: workspaceId,
+    user: userId,
+    role: membership.role,
+  });
+
+  if (!deletedMembership) {
+    const error = new Error(
+      "Membership changed concurrently. Please try again."
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  return {
+    workspaceId: deletedMembership.workspace,
+    userId: deletedMembership.user,
+    leftAt: new Date(),
+  };
+};
