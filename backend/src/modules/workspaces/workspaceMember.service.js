@@ -77,3 +77,132 @@ export const getWorkspaceMembers = async (
     },
   };
 };
+
+
+
+
+export const updateWorkspaceMemberRole = async (
+  workspaceId,
+  memberId,
+  requesterId,
+  newRole
+) => {
+  // 1. Validate resource identifiers
+  if (
+    !mongoose.isValidObjectId(workspaceId) ||
+    !mongoose.isValidObjectId(memberId)
+  ) {
+    return null;
+  }
+
+  // 2. Verify workspace exists and is active
+  const workspace = await Workspace.findOne({
+    _id: workspaceId,
+    isDeleted: { $ne: true },
+  }).select("_id");
+
+  if (!workspace) {
+    return null;
+  }
+
+  // 3. Find the requester's membership
+  const requesterMembership = await WorkspaceMember.findOne({
+    workspace: workspaceId,
+    user: requesterId,
+  });
+
+  if (!requesterMembership) {
+    return null;
+  }
+
+  // 4. Only owners and admins can manage roles
+  const allowedRoles = ["owner", "admin"];
+
+  if (!allowedRoles.includes(requesterMembership.role)) {
+    const error = new Error(
+      "You do not have permission to manage member roles."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 5. Find the target membership
+  const targetMembership = await WorkspaceMember.findOne({
+    _id: memberId,
+    workspace: workspaceId,
+  });
+
+  if (!targetMembership) {
+    return null;
+  }
+
+  // 6. Prevent users from modifying their own role
+  if (targetMembership.user.toString() === requesterId.toString()) {
+    const error = new Error("You cannot change your own role.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 7. Protect workspace ownership
+  if (targetMembership.role === "owner") {
+    const error = new Error(
+      "Workspace owner role cannot be changed through this operation."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 8. Only the owner can assign the admin role
+  if (
+    newRole === "admin" &&
+    requesterMembership.role !== "owner"
+  ) {
+    const error = new Error(
+      "Only the workspace owner can promote members to admin."
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 9. Prevent unnecessary updates
+  if (targetMembership.role === newRole) {
+    const error = new Error(
+      "The member already has the requested role."
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // 10. Update the target membership
+  const updatedMembership = await WorkspaceMember.findOneAndUpdate(
+    {
+      _id: memberId,
+      workspace: workspaceId,
+      role: { $ne: "owner" },
+    },
+    {
+      $set: {
+        role: newRole,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).populate({
+  path: "user",
+  select: "name email",
+});
+
+if (!updatedMembership) {
+  const error = new Error(
+    "Member role changed concurrently. Please refresh and try again."
+  );
+  error.statusCode = 409;
+  throw error;
+}
+
+return toWorkspaceMemberResponse(updatedMembership);
+};
+
+

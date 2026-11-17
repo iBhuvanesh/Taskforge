@@ -66,3 +66,46 @@ export const validateWorkspaceMembersQuery = (req, res, next) => {
 
   next();
 };
+
+
+
+export const validateWorkspaceMemberRole = (req, res, next) => {
+  const { body } = req;
+
+  // 1. Validate request body structure
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid input format. JSON object required.",
+    });
+  }
+
+  // 2. Reject unexpected fields
+  const allowedFields = ["role"];
+
+  const invalidFields = Object.keys(body).filter(
+    (field) => !allowedFields.includes(field)
+  );
+
+  if (invalidFields.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid fields found.",
+      invalidFields,
+    });
+  }
+
+  // 3. Validate role
+  const { role } = body;
+
+  const allowedRoles = ["admin", "project_manager", "member"];
+
+  if (typeof role !== "string" || !allowedRoles.includes(role)) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide a valid workspace role.",
+    });
+  }
+
+  next();
+};
