@@ -36,6 +36,16 @@ workspaceMemberSchema.index(
   { unique: true }
 );
 
+workspaceMemberSchema.index(
+  { workspace: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      role: "owner",
+    },
+  }
+);
+
 const WorkspaceMember = mongoose.model(
   "WorkspaceMember",
   workspaceMemberSchema

@@ -1,11 +1,11 @@
 import express from "express";
 import { protect } from "../auth/middlewares/auth.middleware.js";
-import { acceptWorkspaceInvitationController, createWorkspaceController, createWorkspaceInvitationController, deleteWorkspaceController, getUserWorkspacesController, getWorkspaceByIdController, updateWorkspaceController } from "./workspace.controller.js";
+import { acceptWorkspaceInvitationController, createWorkspaceController, createWorkspaceInvitationController, deleteWorkspaceController, getUserWorkspacesController, getWorkspaceByIdController, transferWorkspaceOwnershipController, updateWorkspaceController } from "./workspace.controller.js";
 import { validateWorkspace } from "./validations/workspace.validation.js";
 import { validateUpdateWorkspace } from "./validations/update-workspace.validation.js";
 import { validateWorkspaceInvitation } from "./validations/invitation.validation.js";
 import { validateInvitationAcceptance } from "./validations/invitationAcceptance.validation.js"
-import { validateRemoveWorkspaceMember, validateWorkspaceId, validateWorkspaceMemberRole, validateWorkspaceMembersQuery } from "./validations/membership.validation.js";
+import { validateOwnershipTransfer, validateRemoveWorkspaceMember, validateWorkspaceId, validateWorkspaceMemberRole, validateWorkspaceMembersQuery } from "./validations/membership.validation.js";
 import { getWorkspaceMembersController, leaveWorkspaceController, removeWorkspaceMemberController, updateWorkspaceMemberRoleController } from "../workspaceMember.controller.js";
  
 
@@ -35,6 +35,8 @@ workspaceRouter.patch(  "/:workspaceId/members/:memberId/role", validateWorkspac
 workspaceRouter.delete("/:workspaceId/members/:memberId", validateRemoveWorkspaceMember, removeWorkspaceMemberController);
 
 workspaceRouter.delete("/:workspaceId/leave", validateWorkspaceId, leaveWorkspaceController)
+
+workspaceRouter.patch("/:workspaceId/transfer-ownership", validateWorkspaceId, validateOwnershipTransfer, transferWorkspaceOwnershipController);
 
 
 

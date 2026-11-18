@@ -375,3 +375,153 @@ export const leaveWorkspace = async (workspaceId, userId) => {
     leftAt: new Date(),
   };
 };
+
+
+
+
+
+export const transferWorkspaceOwnership = async (
+  workspaceId,
+  requesterId,
+  newOwnerMemberId
+) => {
+  // 1. Validate resource identifiers
+  if (
+    !mongoose.isValidObjectId(workspaceId) ||
+    !mongoose.isValidObjectId(newOwnerMemberId)
+  ) {
+    return null;
+  }
+
+  const session = await mongoose.startSession();
+
+  try {
+    const result = await session.withTransaction(async () => {
+      // 2. Verify workspace exists and is active
+      const workspace = await Workspace.findOne({
+        _id: workspaceId,
+        isDeleted: { $ne: true },
+      })
+        .select("_id name")
+        .session(session);
+
+      if (!workspace) {
+        return null;
+      }
+
+      // 3. Verify requester is the current owner
+      const currentOwner = await WorkspaceMember.findOne({
+        workspace: workspaceId,
+        user: requesterId,
+        role: "owner",
+      }).session(session);
+
+      if (!currentOwner) {
+        const error = new Error(
+          "Only the current workspace owner can transfer ownership."
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
+      // 4. Find the target membership
+      const newOwner = await WorkspaceMember.findOne({
+        _id: newOwnerMemberId,
+        workspace: workspaceId,
+      }).session(session);
+
+      if (!newOwner) {
+        return null;
+      }
+
+      // 5. Prevent transferring ownership to yourself
+      if (newOwner.user.toString() === requesterId.toString()) {
+        const error = new Error(
+          "You are already the workspace owner."
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // 6. Verify target is not already an owner
+      if (newOwner.role === "owner") {
+        const error = new Error(
+          "The selected member already has the owner role."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+
+      // 7. Demote the previous owner to admin
+      const demotedOwner = await WorkspaceMember.updateOne(
+        {
+          _id: currentOwner._id,
+          workspace: workspaceId,
+          user: requesterId,
+          role: "owner",
+        },
+        {
+          $set: {
+            role: "admin",
+          },
+        },
+        { session }
+      );
+
+      if (demotedOwner.modifiedCount !== 1) {
+        const error = new Error(
+          "Ownership changed concurrently. Please try again."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+
+
+      // 8. Promote the target member
+      const promotedMember = await WorkspaceMember.updateOne(
+        {
+          _id: newOwner._id,
+          workspace: workspaceId,
+          role: newOwner.role,
+        },
+        {
+          $set: {
+            role: "owner",
+          },
+        },
+        { session }
+      );
+
+      if (promotedMember.modifiedCount !== 1) {
+        const error = new Error(
+          "Target membership changed concurrently. Please try again."
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+    
+
+      // 9. Return transfer details
+      return {
+        workspaceId: workspace._id,
+        workspaceName: workspace.name,
+        previousOwner: {
+          userId: currentOwner.user,
+          role: "admin",
+        },
+        newOwner: {
+          userId: newOwner.user,
+          role: "owner",
+        },
+        transferredAt: new Date(),
+      };
+    });
+
+    return result;
+  } finally {
+    await session.endSession();
+  }
+};

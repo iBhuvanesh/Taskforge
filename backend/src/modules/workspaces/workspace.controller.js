@@ -1,5 +1,6 @@
 import { createWorkspace, deleteWorkspace, getUserWorkspaces, getWorkspaceById, updateWorkspace } from "./workspace.service.js";
 import { acceptWorkspaceInvitation, createWorkspaceInvitation } from "./workspaceInvitation.service.js";
+import { transferWorkspaceOwnership } from "./workspaceMember.service.js";
 
 
 export const createWorkspaceController = async (req, res, next) => {
@@ -159,6 +160,32 @@ export const acceptWorkspaceInvitationController = async (req, res, next) => {
       message: "Workspace invitation accepted successfully.",
       data: result,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+export const transferWorkspaceOwnershipController = async (req, res, next) => {
+  try {
+    const { workspaceId } = req.params;
+    const { newOwnerMemberId } = req.body;
+
+    const result = await transferWorkspaceOwnership(workspaceId, req.user._id, newOwnerMemberId);
+
+    if(!result){
+      return res.status(404).json({
+        success: false,
+        message: "workspace or target member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Workspace ownership transferred successfully.",
+      data: result,
+    });
+
   } catch (error) {
     next(error);
   }
