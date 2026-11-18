@@ -1,4 +1,4 @@
-import { getWorkspaceMembers, leaveWorkspace, removeWorkspaceMember, updateWorkspaceMemberRole } from "./workspaces/workspaceMember.service.js";
+import { getWorkspaceMembers, leaveWorkspace, removeWorkspaceMember, updateWorkspaceMemberRole } from "./workspaceMember.service.js";
 
 export const getWorkspaceMembersController = async (
   req,

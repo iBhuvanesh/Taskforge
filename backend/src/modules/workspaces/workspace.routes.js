@@ -6,7 +6,7 @@ import { validateUpdateWorkspace } from "./validations/update-workspace.validati
 import { validateWorkspaceInvitation } from "./validations/invitation.validation.js";
 import { validateInvitationAcceptance } from "./validations/invitationAcceptance.validation.js"
 import { validateOwnershipTransfer, validateRemoveWorkspaceMember, validateWorkspaceId, validateWorkspaceMemberRole, validateWorkspaceMembersQuery } from "./validations/membership.validation.js";
-import { getWorkspaceMembersController, leaveWorkspaceController, removeWorkspaceMemberController, updateWorkspaceMemberRoleController } from "../workspaceMember.controller.js";
+import { getWorkspaceMembersController, leaveWorkspaceController, removeWorkspaceMemberController, updateWorkspaceMemberRoleController } from "./workspaceMember.controller.js";
  
 
 
